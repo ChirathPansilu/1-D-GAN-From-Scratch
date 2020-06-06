@@ -6,28 +6,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.optim as optim
 
-#generate real distribution data 
+#define a function for sampling from real data distribution
 def generate_real_data(n):
-    x1 = np.random.uniform(-50,50,size=(n,1)) 
+    x1 = np.random.uniform(-0.5,0.5,size=(n,1)) 
     x2 = x1**2                                
     return torch.from_numpy(np.hstack((x1, x2))).float()
 
 
 #define discriminator model
 class Discriminator(nn.Module):
-    def __init__(self, input_dim, hidden_size):
+    def __init__(self, input_dim):
         super(Discriminator, self).__init__()
         
-        self.fc1 = nn.Linear(input_dim, 16)
-        self.fc2 = nn.Linear(16, 16)
-        self.fc3 = nn.Linear(16, 2)
-        self.output = nn.Linear(2, 1)
+        self.fc1 = nn.Linear(input_dim, 25)
+        self.output = nn.Linear(25, 1)
         
     def forward(self,x):
         #forward propagate through discriminator
-        out = F.leaky_relu(self.fc1(x))
-        out = F.leaky_relu(self.fc2(out))
-        out = self.fc3(out)
+        out = F.relu(self.fc1(x))
         out = self.output(out)
         
         return out
@@ -35,23 +31,23 @@ class Discriminator(nn.Module):
 
 #define generator model 
 class Generator(nn.Module):
-    def __init__(self, latent_dim, hidden_dim, output_dim):
+    def __init__(self, latent_dim, output_dim):
         super(Generator, self).__init__()
         
-        self.fc1 = nn.Linear(latent_dim, 16)
-        self.fc2 = nn.Linear(16, 16)
-        self.out = nn.Linear(16, 2)
+        self.fc1 = nn.Linear(latent_dim, 15)
+        self.out = nn.Linear(15, 2)
         
     def forward(self,x):
-        out = F.leaky_relu(self.fc1(x))
-        out = F.leaky_relu(self.fc2(out))
+        out = F.relu(self.fc1(x))
         out = self.out(out)
+        
         return out
         
 
 #define real loss
 def real_loss(d_out) :
     batch_size = d_out.size(0)
+    
     #create labels for real data
     labels = torch.ones(batch_size, 1)
     criterion = nn.BCEWithLogitsLoss()
@@ -61,6 +57,7 @@ def real_loss(d_out) :
 #define fake loss 
 def fake_loss(d_out):
     batch_size = d_out.size(0)
+    
     #create labels for fake data
     labels = torch.zeros(batch_size, 1)
     criterion = nn.BCEWithLogitsLoss()
@@ -69,13 +66,15 @@ def fake_loss(d_out):
 
 
 #set hyperparametrs
-latent_dim = 10
+latent_dim = 5
 lr = 0.001
-hidden_dim= 25
+
 
 #instantiate Generator and Descriminator
-D = Discriminator(2, 16)
-G = Generator(latent_dim, 16, 2)
+D = Discriminator(2)
+G = Generator(latent_dim, 2)
+
+D.train(), G.train()
 
 #define optimizers for discriminator and generator
 d_optimizer = optim.Adam(D.parameters(), lr, betas=(0.5,0.999))
@@ -104,7 +103,7 @@ for i in range(1 ,epochs+1):
    d_r_loss = real_loss(real_output)
    
    #generate latent samples from a standard normal
-   latent = np.random.normal(-50,50,size=(batch_size, latent_dim))
+   latent = np.random.normal(0,1,size=(batch_size, latent_dim))
    latent = torch.from_numpy(latent).float()
    fake_data = G(latent)
    
@@ -125,7 +124,7 @@ for i in range(1 ,epochs+1):
    g_optimizer.zero_grad()
    
    #generate latent samples for generator
-   latent = np.random.normal(-50,50, size=(batch_size, latent_dim))
+   latent = np.random.normal(0,1, size=(batch_size, latent_dim))
    latent = torch.from_numpy(latent).float()
    fake_data = G(latent)
    
@@ -139,22 +138,3 @@ for i in range(1 ,epochs+1):
    
    if i%show_every == 0:
        print(f'Epoch: {i} | d_loss: {d_loss} | g_loss: {g_loss}')
-   
-   
-
-   
-   
-   
-   
-    
-
-
-    
-        
-        
-        
-        
-        
-        
-        
-        
