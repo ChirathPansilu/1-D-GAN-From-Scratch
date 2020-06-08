@@ -64,6 +64,13 @@ def fake_loss(d_out):
     loss = criterion(d_out, labels)
     return loss
 
+#define latent points generator function
+def generate_latent_points(n_samples, latent_dim):
+    #generate latent samples from a standard normal
+    latent = np.random.normal(0,1,size=(n_samples, latent_dim))
+    latent = torch.from_numpy(latent).float()
+    return latent
+
 
 #set hyperparametrs
 latent_dim = 5
@@ -89,52 +96,50 @@ dis_losses = []
 
 #implement training loop
 for i in range(1 ,epochs+1):
-    
+
     #=========================================
     #        Train Discriminator
     #=========================================
-    
-   d_optimizer.zero_grad()
+
+    d_optimizer.zero_grad()
     #get a batch from real distribution
-   real_data  = generate_real_data(batch_size)
-   
-   #calculate loss on real samples
-   real_output = D(real_data)
-   d_r_loss = real_loss(real_output)
-   
-   #generate latent samples from a standard normal
-   latent = np.random.normal(0,1,size=(batch_size, latent_dim))
-   latent = torch.from_numpy(latent).float()
-   fake_data = G(latent)
-   
-   fake_output = D(fake_data)
-   d_f_loss = fake_loss(fake_output)
-   
-   #accumilate losses
-   d_loss = d_r_loss + d_f_loss
-   
-   dis_losses.append(d_loss)
-   
-   d_loss.backward()
-   d_optimizer.step()
-   
-   #===========================================
-   #         Train Generator
-   #===========================================
-   g_optimizer.zero_grad()
-   
-   #generate latent samples for generator
-   latent = np.random.normal(0,1, size=(batch_size, latent_dim))
-   latent = torch.from_numpy(latent).float()
-   fake_data = G(latent)
-   
-   fake_output = D(fake_data)
-   g_loss = real_loss(fake_output)
-   
-   gen_losses.append(g_loss)
-   
-   g_loss.backward()
-   g_optimizer.step()
-   
-   if i%show_every == 0:
+    real_data  = generate_real_data(batch_size)
+
+    #calculate loss on real samples
+    real_output = D(real_data)
+    d_r_loss = real_loss(real_output)
+
+    #generate latent samples from a standard normal
+    latent = generate_latent_points(batch_size, latent_dim)
+    fake_data = G(latent)
+
+    fake_output = D(fake_data)
+    d_f_loss = fake_loss(fake_output)
+
+    #accumilate losses
+    d_loss = d_r_loss + d_f_loss
+
+    dis_losses.append(d_loss)
+
+    d_loss.backward()
+    d_optimizer.step()
+
+    #===========================================
+    #         Train Generator
+    #===========================================
+    g_optimizer.zero_grad()
+
+    #generate latent samples for generator
+    latent = generate_latent_points(batch_size, latent_dim)
+    fake_data = G(latent)
+
+    fake_output = D(fake_data)
+    g_loss = real_loss(fake_output)
+
+    gen_losses.append(g_loss)
+
+    g_loss.backward()
+    g_optimizer.step()
+
+    if i%show_every == 0:
        print(f'Epoch: {i} | d_loss: {d_loss} | g_loss: {g_loss}')
